@@ -66,5 +66,6 @@ int main(){
 		}
 		printf("\n");
 	}
+	printf("just test\n");
 	system("pause");
 }
