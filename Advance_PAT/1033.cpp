@@ -1,89 +1,74 @@
 #include <iostream>
-#include <map>
+#include <vector>
+#include <algorithm>
+#include <float.h>
 using namespace std;
+struct Gas{
+	double price, dist;
+	bool operator< (const Gas& g) const{
+		return dist < g.dist;
+	}
+};
 int main()
 {
 	double c, d, davg, n;
 	cin >> c >> d >> davg >> n;
-	map<double, double> price_dists;
+	vector<Gas> gass;
 	double price, dist;
 	for(int i = 0; i < n; ++i){
-		cin >> price >> dist;
-		price_dists[dist] = price;
+		Gas gas;
+		cin >> gas.price >> gas.dist;
+		gass.push_back(gas);
 	}
-	double prices = 0.0f;
-	bool flag = false; // false: empty, true: remain
-	double remain = 0.0f;
-	bool isMaxDist = true;
-	auto itr = price_dists.begin();
-	if(itr->first > 0.0){
+	sort(gass.begin(), gass.end());
+	if(gass.size() == 0 || gass[0].dist > 0.0){
 		printf("The maximum travel distance = 0.00\n");
 		system("pause");
 		return 0;
 	}
-	auto last = itr;
-	while(itr != price_dists.end()){
-		if(flag){
-			remain = c - (itr->first - last->first) / davg;
-		}else{
-			remain = 0.0f;
-		}
-		double maxdist = itr->first + davg * c;
-		maxdist = min(maxdist, d);
-		auto pitr = itr;
-		pitr++;
-		if(pitr == price_dists.end()){
-			break;
-		}
-		if(pitr->first > maxdist){
-			if(maxdist < d){
-				printf("The maximum travel distance = %.2f\n", maxdist);
-				isMaxDist = false;
-				break;
-			}else{
-				prices += itr->second * maxdist / davg;
-				printf("%.2f\n", prices);
-				isMaxDist = false;
-				break;
-			}
-		}else{
-			while(pitr != price_dists.end() && pitr->first <= maxdist){
-				if(pitr->second <= itr->second){
-					prices += itr->second * ((pitr->first - itr->first) / davg - remain);
-					last = itr;
-					itr = pitr;
-					flag = false;
+
+	bool flag = false; // whether arrive at the destination
+	double prices = 0.0f;
+	double remain = 0.0f;
+	int index = 0;
+	double maxdist = davg * c;
+	while(!flag){
+		bool tag = false; // whether has gas among maxdist
+		bool isCheaper = false; // whether has cheaper gas
+		double cheapest = DBL_MAX;
+		int cheapIdx = index;
+		for(int i = index+1; i < n; ++i){
+			if(gass[i].dist <= gass[index].dist + maxdist){
+				tag = true;
+				if(gass[i].price < gass[index].price){
+					isCheaper = true;
+					prices += ((gass[i].dist - gass[index].dist) / davg - remain) * gass[index].price;
+					remain = 0.0f;
+					index = i;
 					break;
 				}
-				pitr++;
-			}
-			// prices > current price
-			if(itr != pitr){
-				last = itr;
-				prices += itr->second * (c - remain);
-				itr++;
-				double minprice = itr->second;
-				auto nextitr = itr;
-				while(itr != pitr){
-					if(itr->second < minprice){
-						nextitr = itr;
-						minprice = itr->second;
-					}
-					itr++;
+				if(gass[i].price < cheapest){
+					cheapest = gass[i].price;
+					cheapIdx = i;
 				}
-				itr = nextitr;
-				flag = true;
+			}else{
+				break;
 			}
 		}
-	}
-	if(isMaxDist){
-		double maxdist = itr->first + davg * c;
-		if(d <= maxdist){
-			prices += itr->second * ((d - itr->first) / davg - remain);
+		if(!isCheaper && gass[index].dist + maxdist >= d){ 
+			prices += (d - gass[index].dist) / davg * gass[index].price;
 			printf("%.2f\n", prices);
-		}else{
-			printf("The maximum travel distance = %.2f\n", maxdist);
+			system("pause");
+			return 0;
+		}
+		if(!isCheaper && tag){
+			prices += (c - remain) * gass[index].price;
+			remain = c - (gass[cheapIdx].dist - gass[index].dist) / davg;
+			index = cheapIdx;
+		}else if(!tag){
+			printf("The maximum travel distance = %.2lf\n", gass[index].dist + maxdist);
+			system("pause");
+			return 0;
 		}
 	}
-	system("pause");
 }

@@ -1,82 +1,92 @@
 #include <iostream>
-#include <queue>
 #include <vector>
-#include <algorithm>
+#include <set>
+#include <queue>
 using namespace std;
+int n;
+vector<vector<int> > connected;
+vector<int> parents;
+vector<int> dists;
+vector<bool> visited;
+int BFS(int s){
+	visited.assign(n+1, false);
+	dists.assign(n+1, 0);
+	queue<int> que;
+	que.push(s);
+	visited[s] = true;
+	int mmax = dists[s];
+	int cnt = 1;
+	while(!que.empty()){
+		int c = que.front();
+		que.pop();
+		for(int i = 0; i < connected[c].size(); ++i){
+			int v = connected[c][i];
+			if(!visited[v]){
+				dists[v] = dists[c] + 1;
+				que.push(v);
+				mmax = max(mmax, dists[v]);
+				visited[v] = true;
+				cnt++;
+				if(cnt == n) break;
+			}
+		}
+	}
+	return mmax;
+}
+void initSet(){
+	parents.resize(n+1);
+	for(int i = 0; i < parents.size(); ++i)
+		parents[i] = i;
+}
+int findParent(int i){
+	if(parents[i] == i){
+		return i;
+	}else{
+		return parents[i] = findParent(parents[i]);
+	}
+}
+int unionSet(int a, int b){
+	int pa = findParent(a);
+	int pb = findParent(b);
+	if(pa == pb){
+		return -1; // circle
+	}else{
+		parents[pa] = pb;
+		return 0;
+	}
+}
 int main(){
-	int n, from, to;
+	int from, to;
 	scanf("%d", &n);
-	vector<pair<int, int> > connected;
-	vector<pair<int, int> > depth_vec;
+	initSet();
+	bool isCycle = false;
+	connected.resize(n+1);
 	for(int i = 0; i < n-1; ++i){
 		scanf("%d%d", &from, &to);
-		connected.push_back(pair<int, int>(from, to));
-		connected.push_back(pair<int,int>(to, from));
+		connected[from].push_back(to);
+		connected[to].push_back(from);
+		if(unionSet(from, to)){
+			isCycle = true;
+		}
 	}
-	bool flag = true;
-	int maxdepth = 0;
+	set<int> roots;
 	for(int i = 1; i <= n; ++i){
-		int dep = 0;
-		int component = 0;
-		int remain = n;
-
-		vector<bool> visited(n+1, false);
-		while(remain){
-			queue<int> que_node;
-			if(component){
-				for(int k = 1; k <= n; ++k){
-					if(visited[k] == false){
-						i = k;
-						break;
-					}
-				}
-			}
-			que_node.push(i);
-			que_node.push(0);
-			while(!que_node.empty()){
-				int tmp = que_node.front();
-				que_node.pop();
-				if(tmp){
-					if(visited[tmp]){ // cycle
-						continue;
-					}
-					visited[tmp] = true;
-					remain--;
-					for(int j = 1; j <= n; ++j){
-						if(!visited[j]){
-							auto itr = find(connected.begin(), connected.end(), pair<int, int>(tmp, j));
-							if(itr != connected.end()){
-								que_node.push(j);
-							}
-						}
-					}
-				}else{
-					if(!que_node.empty()){
-						que_node.push(0);
-						dep++;
-					}else{
-						break;
-					}
-				}
-			}
-			depth_vec.push_back(pair<int, int>(i, dep));
-			if(dep > maxdepth){
-				maxdepth = dep;
-			}
-			component++;
-		}
-		if(component > 1){
-			printf("Error: %d components\n", component);
-			flag = false;
-			break;
-		}
+		roots.insert(findParent(i));
 	}
-	if(flag){
-		for(auto itr = depth_vec.begin(); itr != depth_vec.end(); ++itr){
-			if(itr->second == maxdepth){
-				printf("%d\n", itr->first);
-			}
+	if(isCycle || roots.size() > 1){
+		printf("Error: %d components\n", roots.size());
+	}else{
+		set<int> candidates;
+		int mmax = BFS(1);
+		for(int i = 1; i <= n; ++i){
+			if(dists[i] == mmax) candidates.insert(i);
 		}
+		mmax = BFS(*candidates.begin());
+		for(int i = 1; i <= n; ++i){
+			if(dists[i] == mmax) candidates.insert(i);
+		}
+		for(auto itr = candidates.begin(); itr != candidates.end(); ++itr)
+			printf("%d\n", *itr);
 	}
 	system("pause");
 }
